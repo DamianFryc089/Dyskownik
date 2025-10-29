@@ -1,0 +1,29 @@
+{
+    "category_type_name": "Category_A",
+    "aggregation_type": "collection",
+    "categories": [
+        {
+            "canonical_name": "cat_A_1",
+            "aliases": [
+                "cat_A_1",
+                "cat_a_1"
+            ]
+        },
+        {
+            "canonical_name": "cat_A_2",
+            "aliases": [
+                "cat_A_2",
+                "cat_Aa_2"
+
+            ]
+        },
+        {
+            "canonical_name": "cat_A_3",
+            "aliases": [
+                "cat_A_3"
+            ]
+        }
+    ],
+    "unassigned_folders": [
+    ]
+}
