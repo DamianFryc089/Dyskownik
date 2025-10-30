@@ -38,6 +38,13 @@ For example, if three drives have folders 'Sem1', 'Sem 1', and 'S1', Dyskownik c
 
 ---
 
+## Requirements
+
+To use **Dyskownik**, you must have valid **Google Drive API credentials** (OAuth 2.0 client credentials).  
+You can generate them from the [Google Cloud Console](https://console.cloud.google.com/apis/credentials) after enabling the **Google Drive API** for your project.
+
+---
+
 ## Category Types
 
 Each **category type** defines how categories and their aliases map to actual files and folders.  
