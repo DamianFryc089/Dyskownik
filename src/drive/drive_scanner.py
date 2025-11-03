@@ -180,7 +180,8 @@ def run_normal(starting_folders_file: str, json_file: str, max_workers: int, sav
 
 	except Exception as e:
 		logger.critical(f"An unhandled error occurred during execution: {e}", exc_info=True)
-
+		if scanner:
+			scanner.executor.shutdown(cancel_futures=True)
 		return False
 	finally:
 		if scanner and scanner.files_to_save_buffer:

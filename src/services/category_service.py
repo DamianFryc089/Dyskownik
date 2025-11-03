@@ -29,17 +29,6 @@ class CategoryService:
 		return sorted(list(set([f.name for f in out_folders])))
 
 	@staticmethod
-	def delete_category_type(category_type: CategoryType):
-		"""
-		Deletes all categories associated with a given category type,
-		as well as the category type itself.
-
-		:param category_type: CategoryType object to delete.
-		"""
-		if category_type.delete():
-			logger.info(f"Deleted category type '{category_type.name}' along with its associated categories.")
-
-	@staticmethod
 	def load_aliases(config_data: list[dict], category_type: CategoryType):
 		"""
 		Loads alias configuration and adds them to the database,

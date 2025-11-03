@@ -3,7 +3,7 @@ from src.drive import drive_scanner
 from src.drive.drive_builder import DriveBuilder
 from src.models.category_type import CategoryType
 from src.services.update_service import UpdateService
-from main import logger, db_checker
+from main import logger, db_checker, config_data
 
 
 def drive_fetch_data(args) -> bool:
@@ -55,15 +55,24 @@ def drive_update(args) -> bool:
 
 def start_server(args) -> bool:
 	"""Starts a server that periodically fetches data from Google Drive and updates the database."""
-	main_folders_file = args.main_folders_file or "auto_main_folders.txt"
-	scan_file = args.scan_file or "auto_scan.json"
-	scan_interval = args.scan_interval or 60 * 60 * 24
+	main_folders_file = args.main_folders_file or config_data.server_main_folders_file or "auto_main_folders.txt"
+	scan_file = args.scan_file or config_data.server_scan_file or "auto_scan.json"
+	scan_interval = args.scan_interval or config_data.server_scan_interval or 60 * 60 * 24
+	max_workers = args.max_workers or config_data.server_max_workers or 10
+	save_every_files = args.save_every_files or config_data.server_save_every_files or 10000000
+	search_parent = args.search_parent or config_data.server_search_parent or False
 
 	if not db_checker.test_db_integrity(IntegrityLevel.FULL):
 		return False
 
 	from src.services.server_service import ServerService
-	server_service = ServerService(main_folders_file, scan_file)
+	server_service = ServerService()
+	server_service.main_folders_file = main_folders_file
+	server_service.scan_file = scan_file
+	server_service.max_workers = max_workers
+	server_service.save_every_files = save_every_files
+	server_service.search_parent = search_parent
+
 	server_service.start_server(scan_interval)
 	return True
 
@@ -121,19 +130,31 @@ def add_drive_parsers(subparsers):
 	server_parser.add_argument(
 		"--main-folders-file",
 		type=str,
-		default="auto_main_folders.txt",
 		help="Text file containing IDs of main folders to monitor (default: auto_main_folders.txt)."
 	)
 	server_parser.add_argument(
 		"--scan-file",
 		type=str,
-		default="auto_scan.json",
 		help="JSON file to save the fetched scan data (default: auto_scan.json)."
 	)
 	server_parser.add_argument(
 		"--scan-interval",
 		type=int,
-		default=60 * 60 * 24,  # Default to 24 hours
 		help="Interval in seconds between scans (default: 24 hours)."
+	)
+	server_parser.add_argument(
+		"--max-workers",
+		type=int,
+		help="Maximum number of worker threads for concurrent fetching (default: 10)."
+	)
+	server_parser.add_argument(
+		"--save-every-files",
+		type=int,
+		help="Number of files to process before saving collected data to JSON (default: 10000000)."
+	)
+	server_parser.add_argument(
+		"--search-parent",
+		action="store_true",
+		help="Enable searching for parent folder during the scan (default: False)."
 	)
 	server_parser.set_defaults(func=start_server)

@@ -1,0 +1,14 @@
+services:
+  dyskownik:
+    build: .
+    container_name: dyskownik
+    volumes:
+      - dyskownik_data:/app/data
+    env_file:
+      - .env
+    command: python main.py start-server
+    restart: unless-stopped
+
+volumes:
+  dyskownik_data:
+    external: true

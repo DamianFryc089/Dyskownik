@@ -6,9 +6,11 @@ from src.commands.drive_commands import drive_update, drive_fetch_data
 
 
 class ServerService:
-	def __init__(self, main_folders_file: str = "auto_main_folders.txt", scan_file: str = "auto_scan.json"):
-		self.main_folders_file = main_folders_file
-		self.scan_file = scan_file
+	main_folders_file : str = "auto_main_folders.txt"
+	scan_file : str = "auto_scan.json"
+	max_workers : int = 10
+	save_every_files : int = 10000000
+	search_parent : bool = False
 
 	def start_server(self, scan_interval: int):
 		"""
@@ -19,17 +21,18 @@ class ServerService:
 		logger.info("Server started")
 		try:
 			while True:
-				drive_fetch_data(type('Args', (object,), {
+				scan_result = drive_fetch_data(type('Args', (object,), {
 					'start_folders_file': self.main_folders_file,
 					'json_file': self.scan_file,
-					'max_workers': 10,
-					'save_every_files': 10000000,
-					'search_parent': True
+					'max_workers': self.max_workers,
+					'save_every_files': self.save_every_files,
+					'search_parent': self.search_parent
 				})())
-				update_data_in_database(args=type('Args', (object,), {
-					'file_with_data': self.scan_file
-				})())
-				drive_update(None)
+				if scan_result:
+					update_data_in_database(args=type('Args', (object,), {
+						'file_with_data': self.scan_file
+					})())
+					drive_update(None)
 				time.sleep(scan_interval)
 		except KeyboardInterrupt:
 			logger.info("Server stopping due to KeyboardInterrupt")
