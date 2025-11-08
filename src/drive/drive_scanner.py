@@ -8,7 +8,7 @@ from googleapiclient.discovery import build
 
 from main import logger
 from src import utils
-from src.drive.DriveAPIClient import DriveAPIClient, DriveScopeMode
+from src.drive.drive_API_client import DriveAPIClient, DriveScopeMode
 from src.models.file import File
 
 
@@ -82,7 +82,8 @@ class DriveScanner:
 
 	def get_file(self, file_id: str, task_service=None) -> File | None:
 		if task_service is None:
-			task_service = build('drive', 'v3', credentials=self.credentials)
+			task_service = DriveAPIClient.create_drive_service(self.credentials)
+			# task_service = build('drive', 'v3', credentials=self.credentials)
 		return self.api_client.fetch_file_data(task_service, file_id)
 
 	def get_and_process_file(self, file_id: str, level: int = 0, task_service=None) -> None:
@@ -100,7 +101,8 @@ class DriveScanner:
 			return
 
 		if task_service is None:
-			task_service = build('drive', 'v3', credentials=self.credentials)
+			task_service = DriveAPIClient.create_drive_service(self.credentials)
+			# task_service = build('drive', 'v3', credentials=self.credentials)
 
 		with self.visited_lock:
 			if file.drive_file_id in self.visited_ids:
@@ -146,7 +148,6 @@ class DriveScanner:
 		with self.pending_futures_lock:
 			self.pending_futures_count -= 1
 			logger.debug(f"Task completed, pending futures count: {self.pending_futures_count}")
-			# task_service._http.close()
 			task_service.close()
 			if self.pending_futures_count == 0:
 				self.all_tasks_done_event.set()  # Signal that all tasks are done
@@ -172,7 +173,8 @@ def run_normal(starting_folders_file: str, json_file: str, max_workers: int, sav
 			logger.warning(f"No drive IDs found in {starting_folders_file}. Exiting.")
 			return False
 
-		task_service = build('drive', 'v3', credentials=scanner.credentials)
+		task_service = DriveAPIClient.create_drive_service(scanner.credentials)
+		# task_service = build('drive', 'v3', credentials=scanner.credentials)
 		for folder_id in main_folders:
 			logger.info(f"Starting scan for drive/folder ID: {folder_id}")
 			scanner.get_and_process_file(folder_id, 0, task_service)

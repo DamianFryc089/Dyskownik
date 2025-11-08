@@ -1,8 +1,11 @@
 import http.client as http_client
 import logging
+import socket
 
 import googleapiclient
+import httplib2
 from google.oauth2.credentials import Credentials
+from google_auth_httplib2 import AuthorizedHttp
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient import errors
 from googleapiclient.discovery import build
@@ -20,7 +23,10 @@ RETRYABLE_EXCEPTIONS = (
 	googleapiclient.errors.HttpError,
 	googleapiclient.errors.ResumableUploadError,
 	http_client.IncompleteRead,
+	socket.gaierror
 )
+
+DEFAULT_HTTP_TIMEOUT = 30
 
 
 # --- NEW: Enum for Drive Scope Modes ---
@@ -210,3 +216,14 @@ class DriveAPIClient:
 				raise
 
 		return creds
+
+	@staticmethod
+	def create_drive_service(creds):
+		http = AuthorizedHttp(creds, http=httplib2.Http(timeout=DEFAULT_HTTP_TIMEOUT))
+		service = build(
+			'drive',
+			'v3',
+			http=http,
+			cache_discovery=False
+		)
+		return service

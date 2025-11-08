@@ -5,7 +5,7 @@ from googleapiclient.discovery import build
 
 from main import logger
 from src.db.query_options import FileQueryOptions
-from src.drive.DriveAPIClient import DriveAPIClient, DriveScopeMode
+from src.drive.drive_API_client import DriveAPIClient, DriveScopeMode
 from src.models.category import Category
 from src.models.category_type import CategoryType
 from src.models.drive_file import DriveFile
@@ -29,7 +29,8 @@ class DriveBuilder:
 		Returns the ID of the root folder.
 		"""
 
-		task_service = build('drive', 'v3', credentials=self.credentials)
+		task_service = DriveAPIClient.create_drive_service(self.credentials)
+		# task_service = build('drive', 'v3', credentials=self.credentials)
 		root_folder = self.api_client.create_drive_folder(task_service, root_folder_name, root_folder_location)
 		if not root_folder:
 			logger.debug(f"Root folder creation failed for name: {root_folder_name}, location: {root_folder_location}")
@@ -42,10 +43,11 @@ class DriveBuilder:
 
 	def get_folder_files(self, folder_id: str, folder_only: bool = False) -> list[File]:
 		"""
-		Retrieves a list of folders in the root folder.
+		Retrieves a list of folders in the folder.
 		Returns a list of dictionaries containing folder metadata.
 		"""
-		task_service = build('drive', 'v3', credentials=self.credentials)
+		task_service = DriveAPIClient.create_drive_service(self.credentials)
+		# task_service = build('drive', 'v3', credentials=self.credentials)
 		response = self.api_client.fetch_folder_data(task_service, folder_id, None)
 		files_on_page: list[File] = response.get('files', [])
 
@@ -64,7 +66,8 @@ class DriveBuilder:
 		:param category_type:
 		:return:
 		"""
-		task_service = build('drive', 'v3', credentials=self.credentials)
+		task_service = DriveAPIClient.create_drive_service(self.credentials)
+		# task_service = build('drive', 'v3', credentials=self.credentials)
 
 		existing_category_type_folder = DriveFile.get_drive_files_by_level(1, category_type)
 		category_type_folder_id = existing_category_type_folder[
@@ -78,6 +81,7 @@ class DriveBuilder:
 				logger.error(f"Failed to create folder for category '{category_type.name}'")
 				return
 			DriveFile.add_drive_file(category_type_folder, 1, category_type)
+			logger.debug(f"Created category type folder '{category_type.name}' with ID {category_type_folder.drive_file_id}")
 			category_type_folder_id = category_type_folder.drive_file_id
 
 		categories = Category.get_by_type(category_type)
@@ -109,6 +113,7 @@ class DriveBuilder:
 			if not shortcut:
 				logger.error(f"Failed to create shortcut for category '{category.canonical_name}'")
 				return
+			logger.debug(f"Creating shortcut '{category.canonical_name}' with ID {category_type_folder_id}'")
 			DriveFile.add_drive_file(shortcut, 2, category_type)
 			return
 
@@ -123,6 +128,7 @@ class DriveBuilder:
 				logger.error(
 					f"Failed to create folder {category.canonical_name} in targeted ID - {category_folder.drive_file_id}")
 				return
+			logger.debug(f"Created category folder '{category.canonical_name}' with ID {category_folder.drive_file_id}")
 			DriveFile.add_drive_file(category_folder, 2, category_type)
 			category_folder_id = category_folder.drive_file_id
 
@@ -139,17 +145,27 @@ class DriveBuilder:
 			if not shortcut:
 				logger.error(f"Failed to create shortcut for file {file.name} in category '{category.canonical_name}'")
 				continue
+			logger.debug(f"Creating shortcut '{shortcut_name}' in category '{category.canonical_name}' with ID {shortcut.drive_file_id}'")
 			DriveFile.add_drive_file(shortcut, 3, category_type)
 
-	def remove_old_files(self):
+	def remove_old_files(self) -> bool:
 		"""
 		Removes old files and folders from Google Drive that are not present in drive_file table.
 		Deletes data in the following order: category_type_folder -> category_folder -> shortcuts.
 		"""
-		task_service = build('drive', 'v3', credentials=self.credentials)
+		task_service = DriveAPIClient.create_drive_service(self.credentials)
+		# task_service = build('drive', 'v3', credentials=self.credentials)
 
 		all_files = DriveFile.get_all_drive_files()
 		drive_category_type_folders = self.get_folder_files(self.root_folder_id, folder_only=True)
+		if not drive_category_type_folders:
+			logger.error("No category type folders found in root folder.")
+			task_service.close()
+			return False
+
+		deleted_category_types = 0
+		deleted_categories = 0
+		deleted_shortcuts = 0
 
 		for drive_category_type_folder in drive_category_type_folders:
 			# Cleaning category type folders that are not in db
@@ -158,6 +174,7 @@ class DriveBuilder:
 					f"Removing category_type folder {drive_category_type_folder.name} with ID {drive_category_type_folder.drive_file_id} from drive.")
 				try:
 					self.api_client.remove_drive_file(task_service, drive_category_type_folder.drive_file_id)
+					deleted_category_types += 1
 				except Exception as e:
 					logger.error(f"Failed to remove folder {drive_category_type_folder.name}: {e}")
 				continue
@@ -170,6 +187,7 @@ class DriveBuilder:
 						f"Removing category folder {drive_category_folder.name} with ID {drive_category_folder.drive_file_id} from drive.")
 					try:
 						self.api_client.remove_drive_file(task_service, drive_category_folder.drive_file_id)
+						deleted_categories += 1
 					except Exception as e:
 						logger.error(f"Failed to remove folder {drive_category_folder.name}: {e}")
 					continue
@@ -184,7 +202,14 @@ class DriveBuilder:
 						logger.debug(f"Removing shortcut {shortcut.name} with ID {shortcut.drive_file_id} from drive.")
 						try:
 							self.api_client.remove_drive_file(task_service, shortcut.drive_file_id)
+							deleted_shortcuts += 1
 						except Exception as e:
 							logger.error(f"Failed to remove shortcut {shortcut.name}: {e}")
 
+
 		task_service.close()
+		logger.info("Deleted obsolete entries from Drive: "
+					f"{deleted_category_types} category type folders, "
+					f"{deleted_categories} category folders, "
+					f"{deleted_shortcuts} shortcuts.")
+		return True

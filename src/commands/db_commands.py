@@ -11,19 +11,19 @@ def initialize_database(args):
 	logger.info("Database initialized successfully.")
 
 
-def update_data_in_database(args):
+def update_data_in_database(args) -> bool:
 	"""Updates the database with new data from a JSON file."""
 	file_with_data = args.file_with_data
 
 	if not db_checker.test_db_integrity(IntegrityLevel.BASE):
-		return
+		return False
 
 	if not file_with_data:
 		logger.error("file_with_data is required for updating data.")
-		return
+		return False
 	from src.services.update_service import UpdateService
 
-	UpdateService.data_update(file_with_data)
+	return UpdateService.data_update(file_with_data)
 
 
 def set_root_folder_id(args) -> bool:

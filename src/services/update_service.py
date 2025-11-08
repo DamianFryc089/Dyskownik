@@ -12,18 +12,18 @@ from main import logger
 class UpdateService:
 
 	@staticmethod
-	def data_update(new_file_with_data: str):
+	def data_update(new_file_with_data: str) -> bool:
 		logger.info(f"Starting database update with file: {new_file_with_data}")
 
 		files_data = utils.get_json(new_file_with_data)
 		if files_data is None or not isinstance(files_data, list):
 			logger.error(f"Failed to load data from {new_file_with_data}. Invalid format.")
-			return
+			return False
 
 		added_files_count = File.add_batch(files_data, FileQueryOptions(temp=True))
 		if added_files_count is None:
 			logger.error("Failed to add files to temporary storage.")
-			return
+			return False
 
 		category_types = CategoryType.get_all()
 		for category_type in category_types:
@@ -36,6 +36,7 @@ class UpdateService:
 
 		logger.info(f"Added {added_files_count} files to the database.")
 		logger.info("Database update completed successfully.")
+		return True
 
 	@staticmethod
 	def drive_update_all(drive_builder: DriveBuilder = None):
@@ -47,10 +48,16 @@ class UpdateService:
 		for category_type in category_types:
 			drive_builder.build_category_type_normal(category_type)
 
+
+		deleted_category_types = 0
+		deleted_categories = 0
+		deleted_shortcuts = 0
+
 		# Remove obsolete category type folders from drive_file table
 		for category_type_drive in DriveFile.get_drive_files_by_level(1):
 			if category_type_drive.category_type_id not in [ct.id for ct in category_types]:
 				category_type_drive.delete()
+				deleted_category_types += 1
 				logger.debug(f"Deleted obsolete category type folder with ID {category_type_drive.drive_file_id} from drive_file table.")
 
 		# Remove obsolete category folders and shortcuts from drive_file table
@@ -59,6 +66,7 @@ class UpdateService:
 			for category_drive in DriveFile.get_drive_files_by_level(2, category_type):
 				if category_drive.name not in [c.canonical_name for c in categories]:
 					category_drive.delete()
+					deleted_categories += 1
 					logger.debug(f"Deleted obsolete category folder '{category_drive.name}' with ID {category_drive.drive_file_id} from drive_file table.")
 
 			for category in categories:
@@ -70,7 +78,11 @@ class UpdateService:
 				for file_drive in DriveFile.get_drive_files_by_level(3, category_type, category_drive.drive_file_id):
 					if file_drive.shortcut_target_id not in [f.drive_file_id for f in files]:
 						file_drive.delete()
+						deleted_shortcuts += 1
 						logger.debug(f"Deleted obsolete shortcut '{file_drive.name}' with ID {file_drive.drive_file_id} from drive_file table.")
-
-		drive_builder.remove_old_files()
-		logger.info("Google Drive structure update completed successfully.")
+		logger.info("Deleted obsolete entries from drive_file table: "
+					f"{deleted_category_types} category type folders, "
+					f"{deleted_categories} category folders, "
+					f"{deleted_shortcuts} shortcuts.")
+		if drive_builder.remove_old_files():
+			logger.info("Google Drive structure update completed successfully.")

@@ -123,7 +123,7 @@ class CategoryType(BaseModel):
 
 			for file in files:
 				category.link_file(file.id, temp)
-				logger.info(
+				logger.debug(
 					f"Linked file '{file.name}' (ID: {file.id}) to canonical category '{category.canonical_name}'.")
 
 	def __repr__(self):
