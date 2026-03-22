@@ -1,6 +1,6 @@
-# Dyskownik - Multi-Drive Google Drive Organizer
+# DriveMapper - Multi-Drive Google Drive Organizer
 
-**Dyskownik** is a command-line tool designed to organize and aggregate data from multiple Google Drives with similar folder structures.  
+**DriveMapper** is a command-line tool designed to organize and aggregate data from multiple Google Drives with similar folder structures.  
 It scrapes file and folder metadata, categorizes them automatically, and rebuilds an organized folder system with shortcuts and collections on Google Drive.
 
 ---
@@ -8,9 +8,9 @@ It scrapes file and folder metadata, categorizes them automatically, and rebuild
 ## Project Overview
 
 Imagine having several Google Drives that share a similar folder layout (for example, *Semesters*, *Lecturers*, *Courses*).  
-Dyskownik lets you connect to all of them, scan their contents, and merge matching folders or files into unified categories.
+DriveMapper lets you connect to all of them, scan their contents, and merge matching folders or files into unified categories.
 
-For example, if three drives have folders 'Sem1', 'Sem 1', and 'S1', Dyskownik can recognize them as aliases of the same category ('Semester 1') and combine their contents into one structured view.
+For example, if three drives have folders 'Sem1', 'Sem 1', and 'S1', DriveMapper can recognize them as aliases of the same category ('Semester 1') and combine their contents into one structured view.
 
 ---
 
@@ -40,7 +40,7 @@ For example, if three drives have folders 'Sem1', 'Sem 1', and 'S1', Dyskownik c
 
 ## Requirements
 
-To use **Dyskownik**, you must have valid **Google Drive API credentials** (OAuth 2.0 client credentials).  
+To use **DriveMapper**, you must have valid **Google Drive API credentials** (OAuth 2.0 client credentials).  
 You can generate them from the [Google Cloud Console](https://console.cloud.google.com/apis/credentials) after enabling the **Google Drive API** for your project.
 
 ---
